@@ -1,0 +1,271 @@
+
+<style>
+*{box-sizing:border-box}
+#app{max-width:400px;margin:0 auto;padding:1.5rem 0}
+.v{display:none}.v.on{display:block}
+.srow{display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--color-background-secondary);border-radius:var(--border-radius-md);margin-bottom:8px;border:0.5px solid var(--color-border-tertiary)}
+.sbadge{background:#FAC775;color:#412402;font-size:12px;font-weight:500;padding:3px 10px;border-radius:20px;flex-shrink:0}
+.dots{display:flex;gap:7px;justify-content:center;margin-top:1.25rem;flex-wrap:wrap}
+.dot{width:10px;height:10px;border-radius:50%;background:var(--color-border-tertiary);transition:background .4s}
+.dot.done{background:#BA7517}.dot.act{background:#D4882A}
+.ctls{display:flex;gap:8px;justify-content:center;margin-top:1rem}
+#slist{max-height:200px;overflow-y:auto;margin-bottom:1rem}
+.snd-btn{display:flex;align-items:center;gap:6px;background:none;border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);padding:5px 12px;cursor:pointer;font-size:13px;color:var(--color-text-secondary)}
+</style>
+<h2 class="sr-only">Jannis Croquis analog klocka-timer</h2>
+<div id="app">
+
+<!-- SETUP -->
+<div id="vs" class="v on">
+  <p style="font-size:22px;font-weight:500;margin:0 0 .2rem">Croquis-timer</p>
+  <p style="font-size:14px;color:var(--color-text-secondary);margin:0 0 1.2rem">Lägg till poser, välj paus och starta.</p>
+  <div id="slist"><p style="font-size:13px;color:var(--color-text-tertiary);text-align:center;padding:1rem 0">Inga sessioner ännu.</p></div>
+  <div style="display:flex;gap:8px;align-items:center;margin-bottom:1.2rem">
+    <input type="number" id="din" min="1" max="10" value="5" style="width:68px">
+    <span style="font-size:14px;color:var(--color-text-secondary)">min</span>
+    <button onclick="addS()" style="flex:1">+ Lägg till session</button>
+  </div>
+  <div style="margin-bottom:1.8rem">
+    <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+      <span style="font-size:14px;color:var(--color-text-secondary)">Paus mellan poser</span>
+      <span id="blbl" style="font-size:14px;font-weight:500">20 s</span>
+    </div>
+    <input type="range" id="bin" min="15" max="30" value="20" step="1" style="width:100%"
+      oninput="S.brk=+this.value;document.getElementById('blbl').textContent=this.value+' s'">
+  </div>
+  <button id="gobtn" onclick="startAll()" disabled style="width:100%">Starta</button>
+</div>
+
+<!-- TIMER -->
+<div id="vt" class="v">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.8rem">
+    <p id="slbl" style="font-size:13px;color:var(--color-text-secondary);margin:0"></p>
+    <button class="snd-btn" id="sndbtn" onclick="togSound()">
+      <span id="sndico">♪</span><span id="sndtxt">Ljud på</span>
+    </button>
+  </div>
+  <div style="display:flex;justify-content:center;margin-bottom:.8rem">
+    <canvas id="clk" width="270" height="270"></canvas>
+  </div>
+  <div class="ctls">
+    <button id="pbtn" onclick="togPause()">Paus</button>
+    <button onclick="skipS()">Hoppa över ↗</button>
+  </div>
+  <div class="dots" id="tdots"></div>
+</div>
+
+<!-- BREAK -->
+<div id="vb" class="v" style="text-align:center;padding:2rem 0">
+  <p style="font-size:11px;color:var(--color-text-secondary);letter-spacing:.08em;text-transform:uppercase;margin:0 0 .4rem">Byt pose</p>
+  <div style="font-size:72px;font-weight:500;color:var(--color-text-secondary);line-height:1;font-variant-numeric:tabular-nums" id="bdisp">20</div>
+  <p style="font-size:12px;color:var(--color-text-tertiary);margin:.3rem 0 1.5rem">sekunder</p>
+  <button onclick="skipB()">Hoppa paus ↗</button>
+  <div class="dots" id="bdots" style="margin-top:1.5rem"></div>
+</div>
+
+<!-- DONE -->
+<div id="vd" class="v" style="text-align:center;padding:3rem 0">
+  <p style="font-size:22px;font-weight:500;margin:0 0 .5rem">Bra jobbat!</p>
+  <p id="dsum" style="font-size:14px;color:var(--color-text-secondary);margin:0 0 2rem"></p>
+  <button onclick="resetApp()">Nytt program</button>
+</div>
+</div>
+
+<script>
+const S={sessions:[],brk:20,idx:0,mode:'setup',t0:null,pt:null,pm:0};
+let anim=null,tock=null,soundOn=true,acx=null,beat=0;
+
+function getAC(){if(!acx)acx=new(window.AudioContext||window.webkitAudioContext)();return acx;}
+function playTick(){
+  try{
+    const ac=getAC();const t=ac.currentTime;
+    const buf=ac.createBuffer(1,ac.sampleRate*0.04,ac.sampleRate);
+    const d=buf.getChannelData(0);
+    const freq=beat%2===0?1200:900;beat++;
+    for(let i=0;i<d.length;i++){
+      const env=Math.exp(-i/(ac.sampleRate*0.008));
+      d[i]=Math.sin(2*Math.PI*freq*i/ac.sampleRate)*env*0.35;
+    }
+    const src=ac.createBufferSource();src.buffer=buf;
+    src.connect(ac.destination);src.start(t);
+  }catch(e){}
+}
+function togSound(){
+  soundOn=!soundOn;
+  document.getElementById('sndico').textContent=soundOn?'♪':'♪';
+  document.getElementById('sndtxt').textContent=soundOn?'Ljud på':'Ljud av';
+  document.getElementById('sndbtn').style.opacity=soundOn?'1':'0.45';
+  if(!soundOn){clearInterval(tock);tock=null;}
+  else if(S.mode==='run'&&!S.pt){startTock();}
+}
+function startTock(){if(!soundOn)return;clearInterval(tock);playTick();tock=setInterval(()=>{if(soundOn&&S.mode==='run'&&!S.pt)playTick();},1000);}
+function stopTock(){clearInterval(tock);tock=null;}
+
+function addS(){
+  const v=Math.max(1,Math.min(10,+document.getElementById('din').value||5));
+  S.sessions.push(v);renderList();
+}
+function delS(i){S.sessions.splice(i,1);renderList();}
+function renderList(){
+  const el=document.getElementById('slist');
+  if(!S.sessions.length){
+    el.innerHTML='<p style="font-size:13px;color:var(--color-text-tertiary);text-align:center;padding:1rem 0">Inga sessioner ännu.</p>';
+    document.getElementById('gobtn').disabled=true;return;
+  }
+  el.innerHTML=S.sessions.map((s,i)=>`<div class="srow">
+    <span class="sbadge">${s} min</span>
+    <span style="font-size:13px;color:var(--color-text-secondary)">Session ${i+1}</span>
+    <button onclick="delS(${i})" style="margin-left:auto;border:none;box-shadow:none;background:none;cursor:pointer;font-size:13px;color:var(--color-text-secondary);padding:2px 8px">✕</button>
+  </div>`).join('');
+  document.getElementById('gobtn').disabled=false;
+}
+
+function elapsed(){
+  let ms=Date.now()-S.t0-S.pm;
+  if(S.pt)ms-=(Date.now()-S.pt);
+  return Math.max(0,ms/1000);
+}
+function startAll(){if(!S.sessions.length)return;S.idx=0;begSess();}
+function begSess(){
+  S.mode='run';S.t0=Date.now();S.pt=null;S.pm=0;
+  showV('vt');beat=0;startTock();
+  document.getElementById('pbtn').textContent='Paus';
+  document.getElementById('slbl').textContent=`Session ${S.idx+1} av ${S.sessions.length} · ${S.sessions[S.idx]} min`;
+  mkDots('tdots');stopA();loop();
+}
+function begBreak(){
+  if(S.idx>=S.sessions.length-1){alldone();return;}
+  S.mode='brk';S.t0=Date.now();S.pt=null;S.pm=0;
+  stopTock();showV('vb');mkDots('bdots');stopA();loopB();
+}
+function alldone(){
+  S.mode='done';stopA();stopTock();showV('vd');
+  const n=S.sessions.length,tot=S.sessions.reduce((a,b)=>a+b,0);
+  document.getElementById('dsum').textContent=`${n} session${n>1?'er':''} · ${tot} min totalt`;
+  chime(true);
+}
+
+function loop(){
+  const tot=S.sessions[S.idx]*60,e=elapsed(),p=Math.min(e/tot,1);
+  drawClock(e,tot);
+  if(p>=1){chime(false);stopTock();setTimeout(begBreak,500);return;}
+  anim=requestAnimationFrame(loop);
+}
+function loopB(){
+  const rem=Math.max(S.brk-elapsed(),0);
+  document.getElementById('bdisp').textContent=Math.ceil(rem);
+  if(rem<=0){S.idx++;begSess();return;}
+  anim=requestAnimationFrame(loopB);
+}
+function stopA(){if(anim){cancelAnimationFrame(anim);anim=null;}}
+function togPause(){
+  if(S.mode!=='run')return;
+  const btn=document.getElementById('pbtn');
+  if(S.pt){S.pm+=Date.now()-S.pt;S.pt=null;btn.textContent='Paus';startTock();loop();}
+  else{S.pt=Date.now();stopA();stopTock();btn.textContent='Fortsätt';}
+}
+function skipS(){stopA();stopTock();chime(false);setTimeout(begBreak,200);}
+function skipB(){stopA();S.idx++;begSess();}
+function resetApp(){stopA();stopTock();S.sessions=[];S.idx=0;S.mode='setup';renderList();showV('vs');}
+
+function drawClock(elapsed,total){
+  const cv=document.getElementById('clk');
+  const ctx=cv.getContext('2d');
+  const cx=135,cy=135,R=130,W=cv.width,H=cv.height;
+  ctx.clearRect(0,0,W,H);
+
+  // Outer red ring
+  ctx.beginPath();ctx.arc(cx,cy,R,0,Math.PI*2);
+  ctx.fillStyle='#CC2222';ctx.fill();
+  ctx.beginPath();ctx.arc(cx,cy,R-9,0,Math.PI*2);
+  ctx.fillStyle='#ffffff';ctx.fill();
+
+  // Tick marks
+  for(let i=0;i<60;i++){
+    const a=i/60*Math.PI*2-Math.PI/2;
+    const isMaj=(i%6===0);
+    const r1=R-10,r2=isMaj?R-24:R-18;
+    ctx.beginPath();
+    ctx.moveTo(cx+Math.cos(a)*r1,cy+Math.sin(a)*r1);
+    ctx.lineTo(cx+Math.cos(a)*r2,cy+Math.sin(a)*r2);
+    ctx.strokeStyle='#222';ctx.lineWidth=isMaj?3:1.5;ctx.stroke();
+  }
+
+  // Numbers 1-10 (10 at top, then 1..9)
+  ctx.font='bold 17px system-ui,sans-serif';ctx.fillStyle='#111';ctx.textAlign='center';ctx.textBaseline='middle';
+  for(let n=1;n<=10;n++){
+    const label=n===10?'10':String(n);
+    const idx=n%10;
+    const a=idx/10*Math.PI*2-Math.PI/2;
+    const nr=R-40;
+    ctx.fillText(label,cx+Math.cos(a)*nr,cy+Math.sin(a)*nr);
+  }
+
+  // Brand name
+  ctx.font='500 11px system-ui,sans-serif';ctx.fillStyle='#444';
+  ctx.fillText('Jannis Croquis',cx,cy+30);
+  ctx.font='400 9px system-ui,sans-serif';ctx.fillStyle='#aaa';
+  ctx.fillText('CROQUIS TIMER',cx,cy+44);
+
+  // Minute hand (1 full rotation = total seconds)
+  const mAng=(elapsed/total)*Math.PI*2-Math.PI/2;
+  drawHand(ctx,cx,cy,mAng,82,7,'#111',true);
+
+  // Second hand
+  const sAng=(elapsed%60)/60*Math.PI*2-Math.PI/2;
+  drawSecHand(ctx,cx,cy,sAng);
+
+  // Center cap
+  ctx.beginPath();ctx.arc(cx,cy,6,0,Math.PI*2);ctx.fillStyle='#111';ctx.fill();
+  ctx.beginPath();ctx.arc(cx,cy,4,0,Math.PI*2);ctx.fillStyle='#CC2222';ctx.fill();
+}
+
+function drawHand(ctx,cx,cy,a,len,w,col,rounded){
+  ctx.save();ctx.translate(cx,cy);ctx.rotate(a+Math.PI/2);
+  ctx.beginPath();
+  if(rounded){
+    ctx.moveTo(-w/2,len*0.15);ctx.lineTo(-w/2,-len*0.8);
+    ctx.quadraticCurveTo(0,-len,w/2,-len*0.8);
+    ctx.lineTo(w/2,len*0.15);ctx.closePath();
+  }else{
+    ctx.moveTo(-w/2,len*0.18);ctx.lineTo(-w/2,-len);ctx.lineTo(w/2,-len);ctx.lineTo(w/2,len*0.18);ctx.closePath();
+  }
+  ctx.fillStyle=col;ctx.fill();ctx.restore();
+}
+
+function drawSecHand(ctx,cx,cy,a){
+  ctx.save();ctx.translate(cx,cy);ctx.rotate(a+Math.PI/2);
+  // tail
+  ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(0,28);
+  ctx.strokeStyle='#CC2222';ctx.lineWidth=2;ctx.stroke();
+  // shaft
+  ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(0,-100);
+  ctx.strokeStyle='#CC2222';ctx.lineWidth=2;ctx.stroke();
+  // Mondaine disc near tip
+  ctx.beginPath();ctx.arc(0,-80,7,0,Math.PI*2);
+  ctx.fillStyle='#CC2222';ctx.fill();
+  ctx.restore();
+}
+
+function mkDots(id){
+  const c=document.getElementById(id);if(!c)return;
+  c.innerHTML=S.sessions.map((_,i)=>`<div class="dot ${i<S.idx?'done':i===S.idx?'act':''}"></div>`).join('');
+}
+function chime(end){
+  try{
+    const ac=getAC();
+    const notes=end?[[523,0],[659,.2],[784,.4],[1047,.65]]:[[880,0],[1100,.18],[880,.36]];
+    notes.forEach(([f,d])=>{
+      const o=ac.createOscillator(),g=ac.createGain();
+      o.connect(g);g.connect(ac.destination);
+      o.frequency.value=f;o.type='sine';
+      const t=ac.currentTime+d;
+      g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(0.25,t+0.04);
+      g.gain.exponentialRampToValueAtTime(0.001,t+0.7);
+      o.start(t);o.stop(t+0.75);
+    });
+  }catch(e){}
+}
+function showV(id){['vs','vt','vb','vd'].forEach(v=>document.getElementById(v).classList.toggle('on',v===id));}
+renderList();
+</script>
