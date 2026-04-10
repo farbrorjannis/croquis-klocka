@@ -19,115 +19,97 @@
       color: #eee;
     }
 
-    .clock-container {
-      position: relative;
+    .clock {
       width: 460px;
       height: 460px;
-    }
-
-    .clock {
-      width: 100%;
-      height: 100%;
       background: white;
-      border: 22px solid #111;
+      border: 24px solid #111;
       border-radius: 50%;
       position: relative;
-      box-shadow: 0 30px 70px rgba(0,0,0,0.65);
+      box-shadow: 0 30px 80px rgba(0,0,0,0.7);
     }
 
     .title {
       position: absolute;
-      top: 172px;                 /* mycket längre ner, nära centrum */
+      top: 185px;
       left: 50%;
       transform: translateX(-50%);
-      font-size: 18.5px;
+      font-size: 19px;
       font-weight: 600;
-      letter-spacing: 2.5px;
+      letter-spacing: 2.8px;
       color: #e63946;
       white-space: nowrap;
-      z-index: 10;
     }
 
-    .hand {
+    .session-hand, .second-hand {
       position: absolute;
       left: 50%;
-      top: 50%;
-      transform-origin: 50% 100%;
+      bottom: 50%;
+      transform-origin: bottom center;
+      border-radius: 999px;
     }
 
     .session-hand {
-      width: 8px;
-      height: 172px;
+      width: 9px;
+      height: 175px;
       background: #111;
-      border-radius: 4px;
-      margin-top: -172px;
-      margin-left: -4px;
+      margin-left: -4.5px;
     }
 
     .second-hand {
       width: 3px;
-      height: 198px;
+      height: 205px;
       background: #e63946;
-      margin-top: -198px;
       margin-left: -1.5px;
     }
 
-    .center-dot {
+    .center {
       position: absolute;
       top: 50%;
       left: 50%;
-      width: 24px;
-      height: 24px;
+      width: 26px;
+      height: 26px;
       background: #111;
       border-radius: 50%;
       transform: translate(-50%, -50%);
-      z-index: 20;
+      z-index: 10;
     }
 
     .countdown {
-      margin-top: 40px;
-      font-size: 82px;
+      margin-top: 45px;
+      font-size: 88px;
       font-weight: 500;
-      letter-spacing: -4px;
       color: #ddd;
+      letter-spacing: -5px;
     }
 
     .info {
-      margin-top: 12px;
-      font-size: 20px;
-      opacity: 0.9;
-    }
-
-    .controls {
-      margin-top: 30px;
+      margin-top: 10px;
+      font-size: 21px;
     }
   </style>
 </head>
 <body>
 
-  <div class="clock-container">
-    <div class="clock" id="clock">
-      <div class="title">JANNIS CROQUIS TIMER</div>
-
-      <div class="hand session-hand" id="sessionHand"></div>
-      <div class="hand second-hand" id="secondHand"></div>
-
-      <div class="center-dot"></div>
-    </div>
+  <div class="clock">
+    <div class="title">JANNIS CROQUIS TIMER</div>
+    
+    <div class="session-hand" id="sessionHand"></div>
+    <div class="second-hand" id="secondHand"></div>
+    
+    <div class="center"></div>
   </div>
 
   <div class="countdown" id="countdown">10:00</div>
   <div class="info" id="info">Session 1 / 1 • 10 min</div>
 
-  <div class="controls">
-    <input type="text" id="sessionsInput" placeholder="Tider i minuter, t.ex. 5,8,3,10" style="width:340px; padding:12px; font-size:16px;">
-    <button onclick="setSessions()" style="padding:12px 20px;">Sätt sessioner</button><br><br>
-    <button onclick="toggleTimer()" style="padding:12px 28px; font-size:17px;">Start / Pause</button>
+  <div style="margin-top:30px;">
+    <input type="text" id="sessionsInput" placeholder="Tider i minuter, t.ex. 5,8,3,10" style="width:350px;padding:12px;font-size:16px;">
+    <button onclick="setSessions()" style="padding:12px 22px;">Sätt sessioner</button><br><br>
+    <button onclick="toggleTimer()" style="padding:14px 32px;font-size:17px;">Start / Pause</button>
   </div>
 
   <script>
-    let sessions = [10];
-    let currentSessionIndex = 0;
     let currentTime = 600;
     let totalSeconds = 600;
     let isRunning = false;
@@ -137,13 +119,14 @@
     const secondHand = document.getElementById('secondHand');
     const countdownEl = document.getElementById('countdown');
     const infoEl = document.getElementById('info');
-    const sessionsInput = document.getElementById('sessionsInput');
+    const input = document.getElementById('sessionsInput');
 
     function updateHands() {
-      const progress = currentTime / totalSeconds;
-      const sessionDeg = 360 * (1 - progress);
+      // Session hand (10 min = 360°)
+      const sessionDeg = 360 * (1 - currentTime / totalSeconds);
       sessionHand.style.transform = `rotate(${sessionDeg}deg)`;
 
+      // Sekundvisare – medurs
       const secondDeg = (currentTime % 60) * 6;
       secondHand.style.transform = `rotate(${secondDeg}deg)`;
     }
@@ -163,13 +146,13 @@
           updateDisplay();
         } else {
           clearInterval(timerInterval);
-          // enkelt larm
+          // Larm
           const audio = new (window.AudioContext || window.webkitAudioContext)();
           const osc = audio.createOscillator();
-          osc.frequency.value = 680;
+          osc.frequency.value = 650;
           osc.connect(audio.destination);
           osc.start();
-          setTimeout(() => osc.stop(), 400);
+          setTimeout(() => osc.stop(), 500);
         }
       }, 1000);
     }
@@ -181,21 +164,19 @@
     }
 
     function setSessions() {
-      const val = sessionsInput.value.trim();
+      const val = input.value.trim();
       if (!val) return;
-      sessions = val.split(',').map(n => parseInt(n.trim())).filter(n => !isNaN(n) && n > 0 && n <= 10);
-      if (sessions.length > 18) sessions = sessions.slice(0,18);
-      
-      currentSessionIndex = 0;
-      currentTime = sessions[0] * 60;
-      totalSeconds = currentTime;
-      infoEl.textContent = `Session 1 / ${sessions.length} • ${sessions[0]} min`;
-      updateDisplay();
+      const newSessions = val.split(',').map(n => parseInt(n.trim())).filter(n => !isNaN(n) && n > 0 && n <= 10);
+      if (newSessions.length > 0) {
+        currentTime = newSessions[0] * 60;
+        totalSeconds = currentTime;
+        infoEl.textContent = `Session 1 / ${newSessions.length} • ${newSessions[0]} min`;
+        updateDisplay();
+      }
     }
 
-    // Init
+    // Start
     updateDisplay();
-    infoEl.textContent = `Session 1 / 1 • 10 min`;
   </script>
 </body>
 </html>
