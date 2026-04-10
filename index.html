@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Jannis Croquis Timer</title>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap');
     
     body {
       margin: 0;
@@ -28,21 +28,21 @@
     .clock {
       width: 100%;
       height: 100%;
-      background: #fff;
-      border: 20px solid #111;
+      background: white;
+      border: 22px solid #111;
       border-radius: 50%;
       position: relative;
-      box-shadow: 0 25px 60px rgba(0,0,0,0.7);
+      box-shadow: 0 30px 70px rgba(0,0,0,0.65);
     }
 
     .title {
       position: absolute;
-      top: 78px;               /* lite närmare centrum */
+      top: 135px;           /* mycket längre ner, närmare pinnen */
       left: 50%;
       transform: translateX(-50%);
-      font-size: 13.8px;
-      font-weight: 500;
-      letter-spacing: 2.2px;
+      font-size: 17px;
+      font-weight: 600;
+      letter-spacing: 1.8px;
       color: #e63946;
       z-index: 10;
     }
@@ -57,41 +57,43 @@
 
     .num {
       position: absolute;
-      font-size: 21px;
+      font-size: 22px;
       color: #111;
       font-weight: 400;
-      width: 30px;
+      width: 32px;
       text-align: center;
     }
 
     .hand {
       position: absolute;
       left: 50%;
-      bottom: 50%;
-      transform-origin: bottom center;
+      top: 50%;
+      transform-origin: 50% 100%;
     }
 
     .session-hand {
       width: 8px;
-      height: 170px;           /* längre hand */
+      height: 165px;
       background: #111;
       border-radius: 4px;
-      z-index: 5;
+      margin-top: -165px;
+      margin-left: -4px;
     }
 
     .second-hand {
       width: 3px;
-      height: 195px;
+      height: 190px;
       background: #e63946;
-      z-index: 6;
+      margin-top: -190px;
+      margin-left: -1.5px;
     }
 
     .center-dot {
       position: absolute;
       top: 50%;
       left: 50%;
-      width: 22px;
-      height: 22px;
+      width: 24px;
+      height: 24px;
       background: #111;
       border-radius: 50%;
       transform: translate(-50%, -50%);
@@ -99,33 +101,18 @@
     }
 
     .countdown {
-      margin-top: 30px;
-      font-size: 78px;
+      margin-top: 35px;
+      font-size: 82px;
       font-weight: 500;
       letter-spacing: -4px;
       color: #ddd;
     }
 
     .info {
-      margin-top: 8px;
-      font-size: 19px;
+      margin-top: 10px;
+      font-size: 20px;
       opacity: 0.9;
     }
-
-    .controls {
-      margin-top: 25px;
-      text-align: center;
-    }
-
-    button, input {
-      padding: 10px 18px;
-      margin: 6px;
-      font-size: 16px;
-      border-radius: 8px;
-    }
-
-    .pause .clock { background: #a3c4d4; }
-    .pause .session-hand { background: #223344; }
   </style>
 </head>
 <body>
@@ -135,8 +122,8 @@
       <div class="title">JANNIS CROQUIS TIMER</div>
       <div class="numbers" id="numbers"></div>
 
-      <div class="hand session-hand" id="sessionHand" style="transform: translateX(-50%) rotate(0deg);"></div>
-      <div class="hand second-hand" id="secondHand" style="transform: translateX(-50%) rotate(0deg);"></div>
+      <div class="hand session-hand" id="sessionHand"></div>
+      <div class="hand second-hand" id="secondHand"></div>
 
       <div class="center-dot"></div>
     </div>
@@ -145,11 +132,10 @@
   <div class="countdown" id="countdown">10:00</div>
   <div class="info" id="info">Session 1 / 1 • 10 min</div>
 
-  <div class="controls">
-    <input type="text" id="sessionsInput" placeholder="Tider i minuter, t.ex. 5,8,3,10,2" style="width: 340px;">
-    <button onclick="setSessions()">Sätt sessioner</button><br>
+  <div style="margin-top:25px;">
+    <input type="text" id="sessionsInput" placeholder="Tider i minuter, t.ex. 5,8,3,10" style="width:340px; padding:10px;">
+    <button onclick="setSessions()">Sätt sessioner</button><br><br>
     <button onclick="toggleTimer()">Start / Pause</button>
-    <button onclick="toggleTick()">Tiktack: <span id="tickStatus">PÅ</span></button>
   </div>
 
   <script>
@@ -159,37 +145,32 @@
     let totalSeconds = 600;
     let isRunning = false;
     let timerInterval = null;
-    let tickEnabled = true;
 
-    const clock = document.getElementById('clock');
     const sessionHand = document.getElementById('sessionHand');
     const secondHand = document.getElementById('secondHand');
     const countdownEl = document.getElementById('countdown');
     const infoEl = document.getElementById('info');
     const sessionsInput = document.getElementById('sessionsInput');
 
-    // Skapa 1-10 siffror – nu med bättre placering
     function createNumbers() {
       const container = document.getElementById('numbers');
       for (let i = 1; i <= 10; i++) {
-        const angle = (i * 36) - 90;           // 36° per siffra
+        const angle = (i * 36) - 90;
         const num = document.createElement('div');
         num.className = 'num';
         num.textContent = i;
-        num.style.transform = `rotate(${angle}deg) translate(0px, -195px) rotate(${-angle}deg)`;
+        num.style.transform = `rotate(${angle}deg) translate(0, -195px) rotate(${-angle}deg)`;
         container.appendChild(num);
       }
     }
 
     function updateHands() {
-      // Session hand (10 min = 360°)
       const progress = currentTime / totalSeconds;
       const sessionDeg = 360 * (1 - progress);
-      sessionHand.style.transform = `translateX(-50%) rotate(${sessionDeg}deg)`;
+      sessionHand.style.transform = `rotate(${sessionDeg}deg)`;
 
-      // Sekundvisare (medurs)
-      const secondDeg = ((currentTime % 60) * 6);
-      secondHand.style.transform = `translateX(-50%) rotate(${secondDeg}deg)`;
+      const secondDeg = (currentTime % 60) * 6;
+      secondHand.style.transform = `rotate(${secondDeg}deg)`;
     }
 
     function updateDisplay() {
@@ -199,76 +180,23 @@
       updateHands();
     }
 
-    function playTick() {
-      if (!tickEnabled) return;
-      const ctx = new (window.AudioContext || window.webkitAudioContext)();
-      const osc = ctx.createOscillator();
-      osc.type = 'sine';
-      osc.frequency.value = 880;
-      const gain = ctx.createGain();
-      gain.gain.value = 0.025;
-      osc.connect(gain).connect(ctx.destination);
-      osc.start();
-      setTimeout(() => osc.stop(), 35);
-    }
-
-    function playChime() {
-      const ctx = new (window.AudioContext || window.webkitAudioContext)();
-      const osc = ctx.createOscillator();
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(620, ctx.currentTime);
-      osc.connect(ctx.destination);
-      osc.start();
-      setTimeout(() => osc.frequency.setValueAtTime(880, ctx.currentTime + 0.2), 180);
-      setTimeout(() => osc.stop(), 650);
-    }
-
     function startTimer() {
       if (timerInterval) clearInterval(timerInterval);
       timerInterval = setInterval(() => {
         if (currentTime > 0) {
           currentTime--;
-          playTick();
           updateDisplay();
         } else {
           clearInterval(timerInterval);
-          playChime();
-          clock.classList.add('pause');
-          setTimeout(nextSession, 2800);
+          // enkel chime
+          const audio = new AudioContext();
+          const osc = audio.createOscillator();
+          osc.frequency.value = 680;
+          osc.connect(audio.destination);
+          osc.start();
+          setTimeout(() => osc.stop(), 300);
         }
       }, 1000);
-    }
-
-    function nextSession() {
-      clock.classList.remove('pause');
-      currentSessionIndex++;
-      if (currentSessionIndex >= sessions.length) {
-        alert("Alla sessioner är klara! Bra jobbat!");
-        isRunning = false;
-        return;
-      }
-      currentTime = sessions[currentSessionIndex] * 60;
-      totalSeconds = currentTime;
-      updateInfo();
-      updateDisplay();
-      startTimer();
-    }
-
-    function updateInfo() {
-      infoEl.textContent = `Session ${currentSessionIndex + 1} / ${sessions.length} • ${sessions[currentSessionIndex]} min`;
-    }
-
-    function setSessions() {
-      const val = sessionsInput.value.trim();
-      if (!val) return;
-      sessions = val.split(',').map(n => parseInt(n.trim())).filter(n => !isNaN(n) && n > 0 && n <= 10);
-      if (sessions.length > 18) sessions = sessions.slice(0, 18);
-      
-      currentSessionIndex = 0;
-      currentTime = sessions[0] * 60;
-      totalSeconds = currentTime;
-      updateInfo();
-      updateDisplay();
     }
 
     function toggleTimer() {
@@ -277,15 +205,22 @@
       else clearInterval(timerInterval);
     }
 
-    function toggleTick() {
-      tickEnabled = !tickEnabled;
-      document.getElementById('tickStatus').textContent = tickEnabled ? "PÅ" : "AV";
+    function setSessions() {
+      const val = sessionsInput.value.trim();
+      if (!val) return;
+      sessions = val.split(',').map(n => parseInt(n.trim())).filter(n => !isNaN(n) && n > 0 && n <= 10);
+      if (sessions.length > 18) sessions = sessions.slice(0,18);
+      currentSessionIndex = 0;
+      currentTime = sessions[0] * 60;
+      totalSeconds = currentTime;
+      infoEl.textContent = `Session 1 / ${sessions.length} • ${sessions[0]} min`;
+      updateDisplay();
     }
 
     // Init
     createNumbers();
     updateDisplay();
-    updateInfo();
+    infoEl.textContent = `Session 1 / 1 • 10 min`;
   </script>
 </body>
 </html>
