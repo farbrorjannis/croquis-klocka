@@ -6,135 +6,41 @@
   <title>Jannis Croquis Timer</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500&display=swap');
-
     body {
-      margin: 0;
-      height: 100vh;
-      background: #1a1429; /* mörk indigo */
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      font-family: 'Inter', system-ui, sans-serif;
-      color: #eee;
-      overflow: hidden;
+      margin: 0; height: 100vh; background: #1a1429; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; font-family: 'Inter', sans-serif; color: #eee;
     }
-
-    .clock-container {
-      position: relative;
-      width: 420px;
-      height: 420px;
-    }
-
+    .clock-container { position: relative; width: 440px; height: 440px; }
     .clock {
-      width: 100%;
-      height: 100%;
-      background: #fff;
-      border: 18px solid #111;
-      border-radius: 50%;
-      position: relative;
-      box-shadow: 0 20px 40px rgba(0,0,0,0.6);
+      width: 100%; height: 100%; background: #fff; border: 18px solid #111;
+      border-radius: 50%; box-shadow: 0 20px 50px rgba(0,0,0,0.7); position: relative;
     }
-
-    /* Titeln på urtavlan */
     .title {
-      position: absolute;
-      top: 68px;           /* placerad högre upp, nära 10 */
-      left: 50%;
-      transform: translateX(-50%);
-      font-size: 13px;
-      font-weight: 500;
-      letter-spacing: 1.5px;
-      color: #e63946;      /* klar röd accent */
-      text-align: center;
-      white-space: nowrap;
-      z-index: 10;
+      position: absolute; top: 92px; left: 50%; transform: translateX(-50%);
+      font-size: 13.5px; font-weight: 500; letter-spacing: 2px; color: #e63946;
+      text-align: center; white-space: nowrap; z-index: 10;
     }
-
-    /* 1-10 siffror */
-    .numbers {
-      position: absolute;
-      width: 100%;
-      height: 100%;
-      top: 0;
-      left: 0;
-    }
-
+    .numbers { position: absolute; width: 100%; height: 100%; top: 0; left: 0; }
     .num {
-      position: absolute;
-      font-size: 18px;
+      position: absolute; font-size: 19px; color: #111; width: 28px; text-align: center;
       font-weight: 400;
-      color: #111;
-      width: 24px;
-      text-align: center;
     }
-
-    /* Händer */
     .hand {
-      position: absolute;
-      left: 50%;
-      bottom: 50%;
-      transform-origin: bottom center;
+      position: absolute; left: 50%; bottom: 50%; transform-origin: bottom center;
       border-radius: 9999px;
-      transition: transform 0.05s linear;
     }
-
-    .session-hand {      /* lång svart hand - 10 min */
-      width: 6px;
-      height: 38%;
-      background: #111;
-      z-index: 5;
-    }
-
-    .second-hand {       /* röd sweep sekundvisare */
-      width: 3px;
-      height: 46%;
-      background: #e63946;
-      z-index: 6;
-    }
-
+    .session-hand { width: 7px; height: 39%; background: #111; z-index: 5; }
+    .second-hand { width: 3px; height: 47%; background: #e63946; z-index: 6; transition: transform 0.08s linear; }
     .center-dot {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      width: 18px;
-      height: 18px;
-      background: #111;
-      border-radius: 50%;
-      transform: translate(-50%, -50%);
-      z-index: 20;
+      position: absolute; top: 50%; left: 50%; width: 20px; height: 20px;
+      background: #111; border-radius: 50%; transform: translate(-50%, -50%); z-index: 20;
     }
-
-    /* Digital countdown under klockan */
-    .countdown {
-      margin-top: 30px;
-      font-size: 68px;
-      font-weight: 500;
-      letter-spacing: -2px;
-      color: #ddd;
-      text-shadow: 0 4px 15px rgba(0,0,0,0.5);
-    }
-
-    .info {
-      margin-top: 8px;
-      font-size: 18px;
-      opacity: 0.85;
-    }
-
-    .pause .clock { background: #a3c4d4; }           /* blå skymning */
-    .pause .session-hand { background: #334455; }
-    .pause .title { color: #334455; }
-
-    button {
-      margin-top: 30px;
-      padding: 12px 28px;
-      font-size: 16px;
-      background: rgba(255,255,255,0.1);
-      color: #eee;
-      border: 1px solid rgba(255,255,255,0.3);
-      border-radius: 9999px;
-      cursor: pointer;
-    }
+    .countdown { margin-top: 25px; font-size: 72px; font-weight: 500; letter-spacing: -3px; color: #ddd; }
+    .info { margin-top: 6px; font-size: 19px; opacity: 0.9; }
+    .controls { margin-top: 25px; text-align: center; }
+    button, input { padding: 10px 16px; margin: 5px; font-size: 16px; border-radius: 8px; }
+    .pause .clock { background: #a3c4d4; }
+    .pause .session-hand { background: #223344; }
   </style>
 </head>
 <body>
@@ -142,94 +48,140 @@
   <div class="clock-container">
     <div class="clock" id="clock">
       <div class="title">JANNIS CROQUIS TIMER</div>
-      
-      <!-- 1-10 siffror (placerade längre in) -->
       <div class="numbers" id="numbers"></div>
-
-      <!-- Händer -->
       <div class="hand session-hand" id="sessionHand"></div>
       <div class="hand second-hand" id="secondHand"></div>
-      
       <div class="center-dot"></div>
     </div>
   </div>
 
   <div class="countdown" id="countdown">10:00</div>
-  <div class="info" id="info">Session 1 of 0 • 10 min</div>
+  <div class="info" id="info">Session 1 / 0 • 10 min</div>
 
-  <button onclick="toggleTimer()">Start / Pause</button>
+  <div class="controls">
+    <input type="text" id="sessionsInput" placeholder="Tider i minuter, t.ex. 5,8,3,10" style="width:320px">
+    <button onclick="setSessions()">Sätt sessioner</button><br>
+    <button onclick="toggleTimer()">Start / Pause</button>
+    <button onclick="toggleTick()">Tiktack: <span id="tickStatus">PÅ</span></button>
+  </div>
 
   <script>
-    // Konfiguration
-    let currentTime = 600;          // sekunder (10 min default)
+    let sessions = [10];                    // default
+    let currentSessionIndex = 0;
+    let currentTime = 600;                  // sekunder
+    let totalSeconds = 600;
     let isRunning = false;
     let timerInterval = null;
+    let tickInterval = null;
+    let tickEnabled = true;
     let isPause = false;
-    let totalSeconds = 600;
+    let pauseSeconds = 20;                  // standard paus
 
     const clock = document.getElementById('clock');
     const sessionHand = document.getElementById('sessionHand');
     const secondHand = document.getElementById('secondHand');
     const countdownEl = document.getElementById('countdown');
     const infoEl = document.getElementById('info');
+    const sessionsInput = document.getElementById('sessionsInput');
 
-    // Skapa 1-10 siffror (diskret placerade)
+    // Skapa 1-10 siffror (diskret placerade längre in)
     function createNumbers() {
-      const numbersDiv = document.getElementById('numbers');
+      const div = document.getElementById('numbers');
       for (let i = 1; i <= 10; i++) {
-        const angle = (i * 36) - 90;   // 360° / 10 = 36° per steg, -90 för att börja från höger
+        const angle = (i * 36) - 90;
         const num = document.createElement('div');
         num.className = 'num';
-        num.textContent = i === 10 ? '10' : i;
-        num.style.transform = `rotate(${angle}deg) translate(0, -165px) rotate(${-angle}deg)`;
-        numbersDiv.appendChild(num);
+        num.textContent = i;
+        num.style.transform = `rotate(${angle}deg) translate(0, -172px) rotate(${-angle}deg)`;
+        div.appendChild(num);
       }
     }
 
-    // Uppdatera händer
     function updateHands() {
-      const sessionProgress = currentTime / totalSeconds;           // 0 → 1
-      const sessionDeg = 360 * (1 - sessionProgress);               // börjar vid 0° och går till 360°
-      
-      sessionHand.style.transform = `translateX(-50%) rotate(${sessionDeg}deg)`;
-      
-      // Sekundvisare sweep (mjukt)
-      const secondsInMinute = currentTime % 60;
-      const secondDeg = secondsInMinute * 6;
-      secondHand.style.transform = `translateX(-50%) rotate(${secondDeg}deg)`;
+      const progress = currentTime / totalSeconds;
+      const deg = 360 * (1 - progress);
+      sessionHand.style.transform = `translateX(-50%) rotate(${deg}deg)`;
+
+      const secDeg = (currentTime % 60) * 6;
+      secondHand.style.transform = `translateX(-50%) rotate(${secDeg}deg)`;
     }
 
-    // Uppdatera digital countdown
     function updateDisplay() {
-      const min = Math.floor(currentTime / 60);
-      const sec = currentTime % 60;
-      countdownEl.textContent = `${min}:${sec < 10 ? '0' : ''}${sec}`;
-      
+      const m = Math.floor(currentTime / 60);
+      const s = currentTime % 60;
+      countdownEl.textContent = `${m}:${s < 10 ? '0' : ''}${s}`;
       updateHands();
     }
 
-    // Timer loop
+    function playTick() {
+      if (!tickEnabled) return;
+      const audio = new (window.AudioContext || window.webkitAudioContext)();
+      const osc = audio.createOscillator();
+      osc.type = 'sine';
+      osc.frequency.value = 920;
+      const gain = audio.createGain();
+      gain.gain.value = 0.03;
+      osc.connect(gain).connect(audio.destination);
+      osc.start();
+      setTimeout(() => osc.stop(), 40);
+    }
+
+    function playChime() {
+      const audio = new (window.AudioContext || window.webkitAudioContext)();
+      const osc = audio.createOscillator();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(680, audio.currentTime);
+      osc.connect(audio.destination);
+      osc.start();
+      setTimeout(() => { osc.frequency.setValueAtTime(820, audio.currentTime + 0.15); }, 150);
+      setTimeout(() => osc.stop(), 600);
+    }
+
     function startTimer() {
       if (timerInterval) clearInterval(timerInterval);
-      
       timerInterval = setInterval(() => {
         if (currentTime > 0) {
           currentTime--;
+          if (currentTime % 1 === 0) playTick();
           updateDisplay();
         } else {
-          // Tid slut – larm + paus eller nästa
           clearInterval(timerInterval);
-          playSound();
+          playChime();
           clock.classList.add('pause');
-          // Här kan du utöka med paus-logik och nästa session
-          setTimeout(() => {
-            clock.classList.remove('pause');
-            // Exempel: reset till 10 min igen
-            currentTime = totalSeconds;
-            updateDisplay();
-          }, 3000);
+          setTimeout(nextSession, 2500);
         }
       }, 1000);
+    }
+
+    function nextSession() {
+      clock.classList.remove('pause');
+      currentSessionIndex++;
+      if (currentSessionIndex >= sessions.length) {
+        alert("Alla sessioner klara! Bra jobbat!");
+        isRunning = false;
+        return;
+      }
+      currentTime = sessions[currentSessionIndex] * 60;
+      totalSeconds = currentTime;
+      updateInfo();
+      updateDisplay();
+      startTimer();
+    }
+
+    function updateInfo() {
+      infoEl.textContent = `Session ${currentSessionIndex + 1} / ${sessions.length} • ${sessions[currentSessionIndex]} min`;
+    }
+
+    function setSessions() {
+      const input = sessionsInput.value.trim();
+      if (!input) return;
+      sessions = input.split(',').map(t => parseInt(t.trim())).filter(t => !isNaN(t) && t > 0 && t <= 10);
+      if (sessions.length > 18) sessions = sessions.slice(0,18);
+      currentSessionIndex = 0;
+      currentTime = sessions[0] * 60;
+      totalSeconds = currentTime;
+      updateInfo();
+      updateDisplay();
     }
 
     function toggleTimer() {
@@ -242,20 +194,15 @@
       }
     }
 
-    // Enkelt pling-ljud
-    function playSound() {
-      const audio = new AudioContext();
-      const osc = audio.createOscillator();
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(680, audio.currentTime);
-      osc.connect(audio.destination);
-      osc.start();
-      setTimeout(() => osc.stop(), 180);
+    function toggleTick() {
+      tickEnabled = !tickEnabled;
+      document.getElementById('tickStatus').textContent = tickEnabled ? "PÅ" : "AV";
     }
 
     // Init
     createNumbers();
     updateDisplay();
+    updateInfo();
   </script>
 </body>
 </html>
