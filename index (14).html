@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Jannis Croquis Timer</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
+
+  :root {
+    --bg:        #1a0f08;
+    --bg2:       #2a1a0e;
+    --bg3:       #3a2518;
+    --border:    #5a3a25;
+    --text:      #f5e8d8;
+    --text2:     #c9a882;
+    --text3:     #8a6040;
+    --accent:    #e8941a;
+    --accent2:   #f5b044;
+    --red:       #cc2222;
+    --btn-h:     56px;
+    --btn-r:     14px;
+    --radius:    14px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  html, body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+  }
+
+  #app {
+    max-width: 420px;
+    margin: 0 auto;
+    padding: 1.5rem 1.2rem 3rem;
+  }
+
+  /* ── Views ── */
+  .v { display: none; }
+  .v.on { display: block; }
+
+  /* ── Buttons ── */
+  button {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 17px;
+    font-weight: 600;
+    height: var(--btn-h);
+    padding: 0 24px;
+    border-radius: var(--btn-r);
+    border: none;
+    cursor: pointer;
+    transition: transform .1s, opacity .15s, background .15s;
+    letter-spacing: .01em;
+  }
+  button:active { transform: scale(.96); }
+
+  .btn-primary {
+    background: var(--accent);
+    color: #1a0a00;
+    width: 100%;
+  }
+  .btn-primary:disabled {
+    background: var(--bg3);
+    color: var(--text3);
+    cursor: not-allowed;
+    transform: none;
+  }
+  .btn-secondary {
+    background: var(--bg3);
+    color: var(--text);
+    border: 1.5px solid var(--border);
+  }
+  .btn-ghost {
+    background: none;
+    color: var(--text2);
+    border: 1.5px solid var(--border);
+    font-size: 15px;
+    height: 42px;
+    padding: 0 16px;
+  }
+  .btn-danger {
+    background: #3a1010;
+    color: #f08080;
+    border: 1.5px solid #7a2020;
+  }
+
+  /* ── Inputs ── */
+  input[type=number], input[type=range] {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg2);
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    color: var(--text);
+    font-size: 18px;
+    font-weight: 600;
+    padding: 0 14px;
+    height: 52px;
+    outline: none;
+    -moz-appearance: textfield;
+  }
+  input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; }
+  input[type=range] {
+    -webkit-appearance: none;
+    padding: 0;
+    height: 8px;
+    border-radius: 4px;
+    background: var(--bg3);
+    cursor: pointer;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    background: var(--accent);
+    border: 3px solid var(--bg);
+    box-shadow: 0 0 0 2px var(--accent2);
+  }
+
+  /* ── Session list ── */
+  .slist { max-height: 210px; overflow-y: auto; margin-bottom: 1.2rem; }
+  .srow {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 14px;
+    background: var(--bg2);
+    border-radius: var(--radius);
+    margin-bottom: 8px;
+    border: 1px solid var(--border);
+  }
+  .sbadge {
+    background: var(--accent);
+    color: #1a0a00;
+    font-size: 14px;
+    font-weight: 700;
+    padding: 4px 12px;
+    border-radius: 20px;
+    flex-shrink: 0;
+  }
+  .srow-label { font-size: 15px; color: var(--text2); }
+  .del-btn {
+    margin-left: auto;
+    background: none; border: none; box-shadow: none;
+    cursor: pointer; font-size: 18px; color: var(--text3);
+    height: auto; padding: 4px 8px;
+  }
+
+  /* ── Progress dots ── */
+  .dots { display: flex; gap: 8px; justify-content: center; margin-top: 1.2rem; flex-wrap: wrap; }
+  .dot { width: 12px; height: 12px; border-radius: 50%; background: var(--bg3); transition: background .4s; border: 1px solid var(--border); }
+  .dot.done { background: var(--accent); border-color: var(--accent); }
+  .dot.act  { background: var(--accent2); border-color: var(--accent2); box-shadow: 0 0 8px var(--accent2); }
+
+  /* ── Title ── */
+  .title { font-size: 26px; font-weight: 700; color: var(--text); margin-bottom: .2rem; }
+  .subtitle { font-size: 15px; color: var(--text2); margin-bottom: 1.4rem; }
+
+  /* ── Row layouts ── */
+  .row { display: flex; gap: 10px; align-items: center; }
+  .row-between { display: flex; justify-content: space-between; align-items: center; }
+
+  /* ── Section label ── */
+  .sec-label { font-size: 13px; color: var(--text3); text-transform: uppercase; letter-spacing: .08em; }
+
+  /* ── Timer view ── */
+  #slbl { font-size: 16px; font-weight: 600; color: var(--text2); }
+  .ctls { display: flex; gap: 10px; justify-content: center; margin-top: 1rem; }
+  .ctls button { flex: 1; }
+
+  /* ── Break view ── */
+  #vb { text-align: center; padding: 2rem 0; }
+  .break-num {
+    font-family: 'DM Mono', monospace;
+    font-size: 88px;
+    font-weight: 500;
+    color: var(--accent2);
+    line-height: 1;
+    text-shadow: 0 0 40px rgba(232,148,26,.35);
+  }
+
+  /* ── Done view ── */
+  #vd { text-align: center; padding: 3rem 0; }
+  #vd .big { font-size: 28px; font-weight: 700; margin-bottom: .5rem; }
+  #dsum { font-size: 16px; color: var(--text2); margin-bottom: 2rem; }
+
+  /* ── Sound btn ── */
+  #sndbtn {
+    display: flex; align-items: center; gap: 6px;
+    background: var(--bg3); border: 1px solid var(--border);
+    border-radius: 10px; padding: 0 14px;
+    font-size: 14px; color: var(--text2);
+    height: 40px;
+  }
+
+  /* ── Canvas ── */
+  canvas { display: block; margin: 0 auto; }
+
+  /* ── Divider ── */
+  hr { border: none; border-top: 1px solid var(--border); margin: 1.2rem 0; }
+
+  /* ── Wake lock indicator ── */
+  #wakeinfo {
+    font-size: 11px;
+    color: var(--text3);
+    text-align: center;
+    margin-top: .5rem;
+  }
+</style>
+</head>
+<body>
+<div id="app">
+
+<!-- SETUP -->
+<div id="vs" class="v on">
+  <p class="title">Croquis-timer</p>
+  <p class="subtitle">Lägg till poser, välj paus och starta.</p>
+
+  <div class="slist" id="slist">
+    <p style="font-size:14px;color:var(--text3);text-align:center;padding:1rem 0">Inga sessioner ännu.</p>
+  </div>
+
+  <div class="row" style="margin-bottom:1.2rem">
+    <input type="number" id="din" min="1" max="60" value="5" style="width:80px">
+    <span style="font-size:16px;color:var(--text2)">min</span>
+    <button class="btn-secondary" onclick="addS()" style="flex:1">+ Lägg till session</button>
+  </div>
+
+  <hr>
+
+  <div style="margin-bottom:1.6rem">
+    <div class="row-between" style="margin-bottom:10px">
+      <span style="font-size:16px;color:var(--text2)">Paus mellan poser</span>
+      <span id="blbl" style="font-size:18px;font-weight:700;color:var(--accent2)">20 s</span>
+    </div>
+    <input type="range" id="bin" min="5" max="60" value="20" step="1" style="width:100%"
+      oninput="S.brk=+this.value;document.getElementById('blbl').textContent=this.value+' s'">
+  </div>
+
+  <button id="gobtn" class="btn-primary" onclick="startAll()" disabled>▶ Starta</button>
+  <div id="wakeinfo"></div>
+</div>
+
+<!-- TIMER -->
+<div id="vt" class="v">
+  <div class="row-between" style="margin-bottom:.8rem">
+    <span id="slbl"></span>
+    <button id="sndbtn" onclick="togSound()">
+      <span id="sndico">♪</span><span id="sndtxt"> Ljud på</span>
+    </button>
+  </div>
+
+  <canvas id="clk" width="280" height="280"></canvas>
+
+  <div class="ctls">
+    <button id="pbtn" class="btn-secondary" onclick="togPause()">⏸ Paus</button>
+    <button class="btn-ghost" onclick="skipS()">Hoppa ↗</button>
+  </div>
+  <div class="dots" id="tdots"></div>
+</div>
+
+<!-- BREAK -->
+<div id="vb" class="v">
+  <p class="sec-label" style="text-align:center;margin-bottom:.5rem">Byt pose</p>
+  <div class="break-num" id="bdisp">20</div>
+  <p style="font-size:14px;color:var(--text3);margin:.4rem 0 1.5rem;text-align:center">sekunder kvar</p>
+  <button class="btn-primary" onclick="skipB()">Hoppa paus ↗</button>
+  <div class="dots" id="bdots" style="margin-top:1.5rem"></div>
+</div>
+
+<!-- DONE -->
+<div id="vd" class="v">
+  <p class="big">🎉 Bra jobbat!</p>
+  <p id="dsum"></p>
+  <button class="btn-primary" onclick="resetApp()">Nytt program</button>
+</div>
+
+</div><!-- #app -->
+
+<script>
+// ── State ──────────────────────────────────────────────────────────────────
+const S = { sessions: [], brk: 20, idx: 0, mode: 'setup', t0: null, pm: 0, pauseAt: null };
+let anim = null, tock = null, soundOn = true, acx = null, beat = 0;
+let wakeLock = null;
+
+// ── Wake Lock ──────────────────────────────────────────────────────────────
+async function requestWakeLock() {
+  try {
+    if ('wakeLock' in navigator) {
+      wakeLock = await navigator.wakeLock.request('screen');
+      wakeLock.addEventListener('release', () => { wakeLock = null; });
+      setWakeInfo('🟢 Skärmen hålls vaken');
+    } else {
+      setWakeInfo('⚠️ WakeLock stöds ej av din webbläsare');
+    }
+  } catch (e) {
+    setWakeInfo('⚠️ Kunde inte hålla skärmen vaken: ' + e.message);
+  }
+}
+function releaseWakeLock() {
+  if (wakeLock) { wakeLock.release(); wakeLock = null; }
+  setWakeInfo('');
+}
+function setWakeInfo(msg) {
+  const el = document.getElementById('wakeinfo');
+  if (el) el.textContent = msg;
+}
+
+// Re-acquire after visibility change (e.g. phone unlocked)
+document.addEventListener('visibilitychange', async () => {
+  if (document.visibilityState === 'visible' && (S.mode === 'run' || S.mode === 'brk') && !wakeLock) {
+    await requestWakeLock();
+  }
+  // Re-sync time after possible background sleep
+  if (document.visibilityState === 'visible' && anim) {
+    stopA();
+    if (S.mode === 'run') loop();
+    if (S.mode === 'brk') loopB();
+  }
+});
+
+// ── Audio ──────────────────────────────────────────────────────────────────
+function getAC() {
+  if (!acx) acx = new (window.AudioContext || window.webkitAudioContext)();
+  if (acx.state === 'suspended') acx.resume();
+  return acx;
+}
+function playTick() {
+  try {
+    const ac = getAC(); const t = ac.currentTime;
+    const buf = ac.createBuffer(1, ac.sampleRate * 0.04, ac.sampleRate);
+    const d = buf.getChannelData(0);
+    const freq = beat % 2 === 0 ? 1200 : 900; beat++;
+    for (let i = 0; i < d.length; i++) {
+      d[i] = Math.sin(2 * Math.PI * freq * i / ac.sampleRate) * Math.exp(-i / (ac.sampleRate * 0.008)) * 0.35;
+    }
+    const src = ac.createBufferSource(); src.buffer = buf;
+    src.connect(ac.destination); src.start(t);
+  } catch (e) {}
+}
+function togSound() {
+  soundOn = !soundOn;
+  document.getElementById('sndico').textContent = soundOn ? '♪' : '♪';
+  document.getElementById('sndtxt').textContent = soundOn ? ' Ljud på' : ' Ljud av';
+  document.getElementById('sndbtn').style.opacity = soundOn ? '1' : '0.45';
+  if (!soundOn) { clearInterval(tock); tock = null; }
+  else if (S.mode === 'run' && !S.pauseAt) startTock();
+}
+function startTock() {
+  if (!soundOn) return;
+  clearInterval(tock);
+  playTick();
+  tock = setInterval(() => { if (soundOn && S.mode === 'run' && !S.pauseAt) playTick(); }, 1000);
+}
+function stopTock() { clearInterval(tock); tock = null; }
+function chime(end) {
+  try {
+    const ac = getAC();
+    const notes = end
+      ? [[523, 0], [659, .2], [784, .4], [1047, .65]]
+      : [[880, 0], [1100, .18], [880, .36]];
+    notes.forEach(([f, d]) => {
+      const o = ac.createOscillator(), g = ac.createGain();
+      o.connect(g); g.connect(ac.destination);
+      o.frequency.value = f; o.type = 'sine';
+      const t = ac.currentTime + d;
+      g.gain.setValueAtTime(0, t);
+      g.gain.linearRampToValueAtTime(0.28, t + 0.04);
+      g.gain.exponentialRampToValueAtTime(0.001, t + 0.75);
+      o.start(t); o.stop(t + 0.8);
+    });
+  } catch (e) {}
+}
+
+// ── Time helpers ───────────────────────────────────────────────────────────
+// Always wall-clock based – works even when rAF was paused by browser
+function elapsed() {
+  if (S.t0 === null) return 0;
+  let ms = Date.now() - S.t0 - S.pm;
+  if (S.pauseAt) ms -= (Date.now() - S.pauseAt);
+  return Math.max(0, ms / 1000);
+}
+
+// ── Session management ─────────────────────────────────────────────────────
+function addS() {
+  const v = Math.max(1, Math.min(60, +document.getElementById('din').value || 5));
+  S.sessions.push(v); renderList();
+}
+function delS(i) { S.sessions.splice(i, 1); renderList(); }
+function renderList() {
+  const el = document.getElementById('slist');
+  if (!S.sessions.length) {
+    el.innerHTML = '<p style="font-size:14px;color:var(--text3);text-align:center;padding:1rem 0">Inga sessioner ännu.</p>';
+    document.getElementById('gobtn').disabled = true; return;
+  }
+  el.innerHTML = S.sessions.map((s, i) => `
+    <div class="srow">
+      <span class="sbadge">${s} min</span>
+      <span class="srow-label">Session ${i + 1}</span>
+      <button class="del-btn" onclick="delS(${i})">✕</button>
+    </div>`).join('');
+  document.getElementById('gobtn').disabled = false;
+}
+
+// ── Flow ───────────────────────────────────────────────────────────────────
+async function startAll() {
+  if (!S.sessions.length) return;
+  // Unlock AudioContext on user gesture
+  try { getAC(); } catch (e) {}
+  S.idx = 0;
+  await requestWakeLock();
+  begSess();
+}
+
+function begSess() {
+  S.mode = 'run'; S.t0 = Date.now(); S.pauseAt = null; S.pm = 0;
+  showV('vt'); beat = 0; startTock();
+  document.getElementById('pbtn').textContent = '⏸ Paus';
+  document.getElementById('slbl').textContent =
+    `Session ${S.idx + 1} av ${S.sessions.length} · ${S.sessions[S.idx]} min`;
+  mkDots('tdots'); stopA(); loop();
+}
+
+function begBreak() {
+  if (S.idx >= S.sessions.length - 1) { alldone(); return; }
+  S.mode = 'brk'; S.t0 = Date.now(); S.pauseAt = null; S.pm = 0;
+  stopTock(); showV('vb'); mkDots('bdots'); stopA(); loopB();
+}
+
+function alldone() {
+  S.mode = 'done'; stopA(); stopTock(); releaseWakeLock(); showV('vd');
+  const n = S.sessions.length, tot = S.sessions.reduce((a, b) => a + b, 0);
+  document.getElementById('dsum').textContent = `${n} session${n > 1 ? 'er' : ''} · ${tot} min totalt`;
+  chime(true);
+}
+
+// ── Animation loops ────────────────────────────────────────────────────────
+function loop() {
+  const tot = S.sessions[S.idx] * 60;
+  const e = elapsed();
+  drawClock(e, tot);
+  if (e >= tot) { chime(false); stopTock(); setTimeout(begBreak, 500); return; }
+  anim = requestAnimationFrame(loop);
+}
+
+function loopB() {
+  const rem = Math.max(S.brk - elapsed(), 0);
+  document.getElementById('bdisp').textContent = Math.ceil(rem);
+  if (rem <= 0) { S.idx++; begSess(); return; }
+  anim = requestAnimationFrame(loopB);
+}
+
+function stopA() { if (anim) { cancelAnimationFrame(anim); anim = null; } }
+
+function togPause() {
+  if (S.mode !== 'run') return;
+  const btn = document.getElementById('pbtn');
+  if (S.pauseAt) {
+    // Resume
+    S.pm += Date.now() - S.pauseAt; S.pauseAt = null;
+    btn.textContent = '⏸ Paus'; startTock(); loop();
+  } else {
+    // Pause
+    S.pauseAt = Date.now(); stopA(); stopTock();
+    btn.textContent = '▶ Fortsätt';
+  }
+}
+
+function skipS() { stopA(); stopTock(); chime(false); setTimeout(begBreak, 200); }
+function skipB() { stopA(); S.idx++; begSess(); }
+function resetApp() {
+  stopA(); stopTock(); releaseWakeLock();
+  S.sessions = []; S.idx = 0; S.mode = 'setup';
+  renderList(); showV('vs');
+}
+
+// ── Clock drawing ──────────────────────────────────────────────────────────
+function drawClock(e, total) {
+  const cv = document.getElementById('clk');
+  const ctx = cv.getContext('2d');
+  const cx = 140, cy = 140, R = 136;
+  ctx.clearRect(0, 0, cv.width, cv.height);
+
+  // Background
+  ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2);
+  ctx.fillStyle = '#2a1a0e'; ctx.fill();
+
+  // Outer ring
+  ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2);
+  ctx.strokeStyle = '#cc2222'; ctx.lineWidth = 10; ctx.stroke();
+  ctx.beginPath(); ctx.arc(cx, cy, R - 12, 0, Math.PI * 2);
+  ctx.strokeStyle = '#3a2518'; ctx.lineWidth = 2; ctx.stroke();
+
+  // Tick marks
+  for (let i = 0; i < 60; i++) {
+    const a = i / 60 * Math.PI * 2 - Math.PI / 2;
+    const isMaj = (i % 6 === 0);
+    const r1 = R - 12, r2 = isMaj ? R - 30 : R - 21;
+    ctx.beginPath();
+    ctx.moveTo(cx + Math.cos(a) * r1, cy + Math.sin(a) * r1);
+    ctx.lineTo(cx + Math.cos(a) * r2, cy + Math.sin(a) * r2);
+    ctx.strokeStyle = isMaj ? '#c9a882' : '#5a3a25';
+    ctx.lineWidth = isMaj ? 3 : 1.5; ctx.stroke();
+  }
+
+  // Numbers 1-10
+  ctx.font = 'bold 18px "DM Sans", sans-serif';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  for (let n = 1; n <= 10; n++) {
+    const idx = n % 10;
+    const a = idx / 10 * Math.PI * 2 - Math.PI / 2;
+    const nr = R - 44;
+    ctx.fillStyle = '#f5e8d8';
+    ctx.fillText(String(n), cx + Math.cos(a) * nr, cy + Math.sin(a) * nr);
+  }
+
+  // Brand
+  ctx.font = '600 12px "DM Sans", sans-serif'; ctx.fillStyle = '#c9a882';
+  ctx.fillText('Jannis Croquis', cx, cy + 32);
+  ctx.font = '400 9px "DM Sans", sans-serif'; ctx.fillStyle = '#5a3a25';
+  ctx.fillText('CROQUIS TIMER', cx, cy + 46);
+
+  // Elapsed arc
+  const prog = Math.min(e / total, 1);
+  ctx.beginPath();
+  ctx.arc(cx, cy, R - 6, -Math.PI / 2, -Math.PI / 2 + prog * Math.PI * 2);
+  ctx.strokeStyle = 'rgba(232,148,26,.22)'; ctx.lineWidth = 10; ctx.stroke();
+
+  // Minute hand
+  const mAng = (e / total) * Math.PI * 2 - Math.PI / 2;
+  drawHand(ctx, cx, cy, mAng, 86, 7, '#f5e8d8', true);
+
+  // Second hand
+  const sAng = (e % 60) / 60 * Math.PI * 2 - Math.PI / 2;
+  drawSecHand(ctx, cx, cy, sAng);
+
+  // Center
+  ctx.beginPath(); ctx.arc(cx, cy, 7, 0, Math.PI * 2); ctx.fillStyle = '#f5e8d8'; ctx.fill();
+  ctx.beginPath(); ctx.arc(cx, cy, 4, 0, Math.PI * 2); ctx.fillStyle = '#cc2222'; ctx.fill();
+}
+
+function drawHand(ctx, cx, cy, a, len, w, col) {
+  ctx.save(); ctx.translate(cx, cy); ctx.rotate(a + Math.PI / 2);
+  ctx.beginPath();
+  ctx.moveTo(-w / 2, len * 0.15); ctx.lineTo(-w / 2, -len * 0.8);
+  ctx.quadraticCurveTo(0, -len, w / 2, -len * 0.8);
+  ctx.lineTo(w / 2, len * 0.15); ctx.closePath();
+  ctx.fillStyle = col; ctx.fill(); ctx.restore();
+}
+
+function drawSecHand(ctx, cx, cy, a) {
+  ctx.save(); ctx.translate(cx, cy); ctx.rotate(a + Math.PI / 2);
+  ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, 30);
+  ctx.strokeStyle = '#cc2222'; ctx.lineWidth = 2; ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, -104);
+  ctx.strokeStyle = '#cc2222'; ctx.lineWidth = 2; ctx.stroke();
+  ctx.beginPath(); ctx.arc(0, -84, 8, 0, Math.PI * 2);
+  ctx.fillStyle = '#cc2222'; ctx.fill();
+  ctx.restore();
+}
+
+function mkDots(id) {
+  const c = document.getElementById(id); if (!c) return;
+  c.innerHTML = S.sessions.map((_, i) =>
+    `<div class="dot ${i < S.idx ? 'done' : i === S.idx ? 'act' : ''}"></div>`).join('');
+}
+
+function showV(id) {
+  ['vs', 'vt', 'vb', 'vd'].forEach(v =>
+    document.getElementById(v).classList.toggle('on', v === id));
+}
+
+renderList();
+</script>
+</body>
+</html>
